@@ -1,18 +1,23 @@
 import pandas as pd
-import numpy as np
 
 df = pd.read_parquet("data/processed/BTC_1min_features.parquet")
 
-print("Shape:")
-print(df.shape)
+for horizon in [1, 5, 10]:
+    df[f"future_return_{horizon}"] = df["mid_price"].shift(-horizon) / df["mid_price"] - 1
 
-print("Stats")
-print(df[["mid_price", "spread", "imbalance", "z_score"]].describe())
+print("OBI")
+for horizon in [1, 5, 10]:
+    corr = df["imbalance"].corr(df[f"future_return_{horizon}"])
+    print(f"  horizon={horizon:>2} min:  {corr:+.4f}")
 
-print("Nan")
-print(df[["mid_price", "spread", "imbalance", "z_score"]].isna().sum())
+df["obi_bucket"] = pd.qcut(df["imbalance"], q=5, labels=["very negative", "negative", "neutral", "positive", "very positive"])
 
-print("Z-score")
-anomalies = df[df["z_score"].abs() > 2]
-print(f"Count: {len(anomalies):,} / {len(df):,} ({100 * len(anomalies)/len(df):.1f}%)")
-print(anomalies[["mid_price", "spread", "imbalance", "z_score"]].head(10))
+print("After 5 minutes OBI")
+print(
+    df.groupby("obi_bucket", observed=True)["future_return_5"]
+    .mean()
+    .mul(10_000)
+    .round(2)
+    .to_string()
+)
+print("Basis points (1 bp = 0.01%)")
