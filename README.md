@@ -17,9 +17,10 @@ I used a classic Pandas method-chaining approach to make the pipeline clean and 
 
 - ## Visuals
 <img width="1456" height="819" alt="image" src="https://github.com/user-attachments/assets/50f62a5e-8442-45a6-8c2e-8c2fa367864d" />
-## Figure 1 BTC/USD Analysis (2021)
+ Figure 1 BTC/USD Analysis (2021)
 <img width="1456" height="819" alt="image" src="https://github.com/user-attachments/assets/bf09b14b-b19e-40e8-8ef3-debc9e1739e5" />
 ## Figure 2 Z-Score (1 min)
+
 Backtest Results:
 Total Trades: 734
 Win Rate: 45.77%
