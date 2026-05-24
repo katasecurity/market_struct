@@ -19,26 +19,6 @@ A Python pipeline for processing limit order book (LOB) data, extracting microst
 - `explore.py`: correlation between OBI and future price returns at 1m, 5m, 10m horizons.
 - `visual.py`: market regime charts and z-score visualisations.
 
-## Architecture
-
-```
-market_struct/
-├── config.py               # PipelineConfig + MLConfig (frozen dataclasses)
-├── main.py                 # ETL entry-point
-├── train.py                # ML training entry-point
-├── explore.py              # EDA script
-├── visual.py               # Visualisation script
-├── pipeline/
-│   ├── processor.py        # OrderBookProcessor (method-chaining ETL)
-│   ├── features.py         # Microstructure feature computation
-│   └── validators.py       # Schema and non-empty guards
-└── ml_pipeline/
-    ├── dataset.py          # MLDataLoader — feature engineering + time-series split
-    ├── model.py            # ModelTrainer — LightGBM train / predict / persist
-    ├── evaluator.py        # Precision-first evaluation + feature importance
-    └── inference.py        # CandlePredictor — real-time next-candle prediction
-```
-
 ## Visuals
 
 <img width="1456" height="819" alt="image" src="https://github.com/user-attachments/assets/50f62a5e-8442-45a6-8c2e-8c2fa367864d" />
@@ -48,18 +28,6 @@ market_struct/
 <img width="1456" height="819" alt="image" src="https://github.com/user-attachments/assets/bf09b14b-b19e-40e8-8ef3-debc9e1739e5" />
 
 *Figure 2 — Rolling Z-Score (1 min)*
-
-## Tech Stack
-
-| Library | Purpose |
-|---|---|
-| Python 3.10+ | Core logic |
-| pandas / NumPy | Vectorised computation and rolling statistics |
-| PyArrow / FastParquet | Compressed column-oriented storage |
-| LightGBM | Gradient boosting classifier |
-| scikit-learn | Metrics and model evaluation |
-| joblib | Model serialisation |
-| Matplotlib | Visualisation |
 
 ## How to run
 
@@ -72,9 +40,6 @@ python main.py
 
 # 2. Train ML model (requires data/processed/BTC_1min_features.parquet)
 python train.py
-
-# Optional: custom paths
-python train.py --data data/processed/BTC_1min_features.parquet --model-out models/v1.pkl
 
 # 3. Charts
 python visual.py
