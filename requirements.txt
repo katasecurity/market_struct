@@ -3,3 +3,6 @@ numpy
 pyarrow
 fastparquet
 matplotlib
+lightgbm
+scikit-learn
+joblib

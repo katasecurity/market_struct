@@ -1,61 +1,100 @@
 # Crypto Market Pipeline
 
+A Python pipeline for processing limit order book (LOB) data, extracting microstructure features, and training a machine learning model to predict short-term price direction.
+
 ## What it does
-- **Data Cleaning & Alignment:** Takes messy, asynchronous order book snapshots, filters out anomalies (like negative spreads), and forward-fills them into a clean time grid (e.g., 1-second or 1-minute intervals).
-- **Feature Engineering:** Calculates key microstructure metrics:
-  - Mid Price & Bid-Ask Spread
-  - Order Book Imbalance (OBI) - *to measure buy/sell pressure*
-  - Volume-Weighted Mid Price
-  - Rolling Z-Score - *for anomaly detection*
-- **Exploratory Data Analysis (`explore.py`):** Checks the statistical correlation between the Order Book Imbalance and future price returns (1m, 5m, 10m horizons).
-- **Visualization (`visual.py`):** Generates graphs to visually inspect market regimes.
 
+**ETL & Feature Engineering**
+- Cleans asynchronous order book snapshots, filters anomalies (negative spreads), and resamples into a uniform time grid (1s or 1min).
+- Computes key microstructure metrics: mid price, bid-ask spread, order book imbalance (OBI), volume-weighted mid, rolling z-score.
 
-- ## Architecture
-I used a classic Pandas method-chaining approach to make the pipeline clean and readable:
+**ML Pipeline**
+- Generates a ternary directional target (Bullish / Neutral / Bearish) from future returns with a configurable basis-point threshold.
+- Engineers lag features and imbalance deltas to give the model temporal context.
+- Trains a LightGBM classifier with balanced class weights to handle market flat-line dominance.
+- Evaluates precision for directional classes (Bullish / Bearish) — the metric that matters for trade entry quality.
+- Exports a serialised model for real-time inference via `CandlePredictor`.
 
+**Exploratory Analysis**
+- `explore.py`: correlation between OBI and future price returns at 1m, 5m, 10m horizons.
+- `visual.py`: market regime charts and z-score visualisations.
 
-- ## Visuals
+## Architecture
+
+```
+market_struct/
+├── config.py               # PipelineConfig + MLConfig (frozen dataclasses)
+├── main.py                 # ETL entry-point
+├── train.py                # ML training entry-point
+├── explore.py              # EDA script
+├── visual.py               # Visualisation script
+├── pipeline/
+│   ├── processor.py        # OrderBookProcessor (method-chaining ETL)
+│   ├── features.py         # Microstructure feature computation
+│   └── validators.py       # Schema and non-empty guards
+└── ml_pipeline/
+    ├── dataset.py          # MLDataLoader — feature engineering + time-series split
+    ├── model.py            # ModelTrainer — LightGBM train / predict / persist
+    ├── evaluator.py        # Precision-first evaluation + feature importance
+    └── inference.py        # CandlePredictor — real-time next-candle prediction
+```
+
+## Visuals
+
 <img width="1456" height="819" alt="image" src="https://github.com/user-attachments/assets/50f62a5e-8442-45a6-8c2e-8c2fa367864d" />
- Figure 1 BTC/USD Analysis (2021)
+
+*Figure 1 — BTC/USD Order Book Analysis (2021)*
+
 <img width="1456" height="819" alt="image" src="https://github.com/user-attachments/assets/bf09b14b-b19e-40e8-8ef3-debc9e1739e5" />
-## Figure 2 Z-Score (1 min)
 
-Backtest Results:
-Total Trades: 734
-Win Rate: 45.77%
-Total Return: -30.36%
-Market Return: 1.63%
-Sharpe Ratio: -21.21
+*Figure 2 — Rolling Z-Score (1 min)*
 
-Tech Stack
+## Tech Stack
 
-    Python: The core logic
+| Library | Purpose |
+|---|---|
+| Python 3.10+ | Core logic |
+| pandas / NumPy | Vectorised computation and rolling statistics |
+| PyArrow / FastParquet | Compressed column-oriented storage |
+| LightGBM | Gradient boosting classifier |
+| scikit-learn | Metrics and model evaluation |
+| joblib | Model serialisation |
+| Matplotlib | Visualisation |
 
-    Pandas & NumPy: Strict vectorization and rolling statistics
+## How to run
 
-    PyArrow / FastParquet: For compressed, column-oriented storage
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-    Matplotlib: For data visualization
+# 1. ETL: place raw order book CSV in data/raw/ then run
+python main.py
 
+# 2. Train ML model (requires data/processed/BTC_1min_features.parquet)
+python train.py
 
-How to run
+# Optional: custom paths
+python train.py --data data/processed/BTC_1min_features.parquet --model-out models/v1.pkl
 
-    Install dependencies: pip install -r requirements.txt
+# 3. Charts
+python visual.py
+```
 
-    Place your raw order book CSV in data/raw/
+## Inference example
 
-    Run the pipeline: python main.py
+```python
+from config import MLConfig
+from ml_pipeline.inference import CandlePredictor
 
-    Generate charts: python visual.py
+predictor = CandlePredictor(MLConfig())
+result = predictor.predict_next_candle(recent_df)  # DataFrame with >= 10 rows
+# {'prediction': 'Bullish', 'confidence': 0.72, 'above_threshold': True, ...}
+```
 
+## Data Source
 
+High-Frequency Crypto Limit Order Book Data published by Martin on Kaggle.
 
-Data Source & Acknowledgments
+## License
 
-A huge thank you to Martin for publishing the High-Frequency Crypto Limit Order Book Data on Kaggle. 
-Finding clean, open-source tick data of this quality is incredibly rare. 
-
-License
 MIT
-
